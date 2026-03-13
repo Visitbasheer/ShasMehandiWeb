@@ -1,7 +1,7 @@
 // Basic JavaScript for interactivity
 // Add any dynamic features here, like image galleries or form handling
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     console.log('Shas Mehandi website loaded');
 
     // Carousel functionality with prev/next buttons and image panning
@@ -47,96 +47,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Gallery Modal Functionality
-    const modal = document.getElementById('imageModal');
-    const modalImg = document.getElementById('modalImage');
-    const closeBtn = document.getElementsByClassName('close')[0];
-    const modalPrev = document.getElementById('modalPrev');
-    const modalNext = document.getElementById('modalNext');
-
-    // Only initialize modal if elements exist (for pages that have gallery modals)
-    if (modal && modalImg && closeBtn) {
-        // Get all gallery images
-        const galleryImages = document.querySelectorAll('.gallery-grid img');
-
-        let currentImageIndex = 0;
-
-        // Function to show image in modal
-        function showImage(index) {
-            if (index >= 0 && index < galleryImages.length) {
-                currentImageIndex = index;
-                modalImg.src = galleryImages[index].src;
-                modalImg.alt = galleryImages[index].alt;
-            }
-        }
-
-        // Add click event to each gallery image
-        galleryImages.forEach((img, index) => {
-            img.addEventListener('click', function() {
-                currentImageIndex = index;
-                modal.style.display = 'block';
-                showImage(currentImageIndex);
-            });
-        });
-
-        // Navigation functions
-        function showPrevImage() {
-            if (currentImageIndex > 0) {
-                showImage(currentImageIndex - 1);
-            } else {
-                showImage(galleryImages.length - 1); // Wrap to last image
-            }
-        }
-
-        function showNextImage() {
-            if (currentImageIndex < galleryImages.length - 1) {
-                showImage(currentImageIndex + 1);
-            } else {
-                showImage(0); // Wrap to first image
-            }
-        }
-
-        // Add event listeners for navigation buttons (if they exist)
-        if (modalPrev) {
-            modalPrev.addEventListener('click', function(e) {
-                e.stopPropagation(); // Prevent modal close
-                showPrevImage();
-            });
-        }
-
-        if (modalNext) {
-            modalNext.addEventListener('click', function(e) {
-                e.stopPropagation(); // Prevent modal close
-                showNextImage();
-            });
-        }
-
-        // Close modal when clicking the X button
-        closeBtn.addEventListener('click', function() {
-            modal.style.display = 'none';
-        });
-
-        // Close modal when clicking outside the image
-        modal.addEventListener('click', function(event) {
-            if (event.target === modal) {
-                modal.style.display = 'none';
-            }
-        });
-
-        // Keyboard navigation
-        document.addEventListener('keydown', function(event) {
-            if (modal.style.display === 'block') {
-                if (event.key === 'Escape') {
-                    modal.style.display = 'none';
-                } else if (event.key === 'ArrowLeft') {
-                    showPrevImage();
-                } else if (event.key === 'ArrowRight') {
-                    showNextImage();
-                }
-            }
-        });
-    }
-
     // Hamburger Menu Functionality
     const hamburger = document.getElementById('hamburger');
     const menu = document.getElementById('menu');
@@ -164,22 +74,121 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    const galleryGrid = document.querySelector('.gallery-grid');
+    const modal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('modalImage');
+    const closeBtn = document.querySelector('.close');
+    const modalPrev = document.getElementById('modalPrev');
+    const modalNext = document.getElementById('modalNext');
+
+    let currentImageIndex = 0;
+    let allGalleryImages = []; // This will hold the images once loaded from Azure
+
+    // Function to update modal content
+    function showImage(index) {
+        if (index >= 0 && index < allGalleryImages.length) {
+            currentImageIndex = index;
+            modalImg.src = allGalleryImages[index].src;
+            modalImg.alt = allGalleryImages[index].alt;
+        }
+    }
+
+    if (galleryGrid) {
+        try {
+            const response = await fetch('https://fa-zebpay-price-notifier-flex-adckbkf4haf7hebk.southindia-01.azurewebsites.net/api/getGalleryImages');
+            const imageUrls = await response.json();
+
+            galleryGrid.innerHTML = ''; // Clear placeholders
+
+            imageUrls.forEach((url, index) => {
+                const img = document.createElement('img');
+                img.src = url;
+                img.alt = "Shas Mehandi Design";
+                img.loading = "lazy";
+                
+                img.addEventListener('click', function() {
+                    modal.style.display = 'block';
+                    showImage(index);
+                });
+
+                galleryGrid.appendChild(img);
+                allGalleryImages.push(img); // Add to our navigation array
+            });
+        } catch (error) {
+            console.error("Failed to load gallery:", error);
+        }
+    }
+
+    // Modal Navigation Handlers
+    if (modalPrev) {
+        modalPrev.addEventListener('click', function(e) {
+            e.stopPropagation();
+            currentImageIndex = (currentImageIndex > 0) ? currentImageIndex - 1 : allGalleryImages.length - 1;
+            showImage(currentImageIndex);
+        });
+    }
+
+    if (modalNext) {
+        modalNext.addEventListener('click', function(e) {
+            e.stopPropagation();
+            currentImageIndex = (currentImageIndex < allGalleryImages.length - 1) ? currentImageIndex + 1 : 0;
+            showImage(currentImageIndex);
+        });
+    }
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => modal.style.display = 'none');
+    }
+
+    window.addEventListener('click', (e) => {
+        if (e.target === modal) modal.style.display = 'none';
+    });
+
+    // Keyboard navigation
+    document.addEventListener('keydown', function(event) {
+        if (modal && modal.style.display === 'block') {
+            if (event.key === 'Escape') modal.style.display = 'none';
+            else if (event.key === 'ArrowLeft') modalPrev.click();
+            else if (event.key === 'ArrowRight') modalNext.click();
+        }
+    });
+
     const contactForm = document.getElementById('contactForm');
     if (contactForm) {
         contactForm.addEventListener('submit', async function(event) {
             event.preventDefault();
 
             // Replace with your actual Azure Function URL
-            const AZURE_FUNCTION_URL = 'https://fa-zebpay-price-notifier-flex.azurewebsites.net/api/shasmehandi_send_telegram_message';
+            const AZURE_FUNCTION_URL = 'https://fa-zebpay-price-notifier-flex-adckbkf4haf7hebk.southindia-01.azurewebsites.net/api/sendTelegramMessage';
 
             const formData = new FormData(contactForm);
+
+            // Get the raw date (yyyy-mm-dd) from the form
+            const rawDate = formData.get('serviceDate'); 
+            let formattedServiceDate = rawDate;
+
+            // Convert to dd-mm-yyyy if a date was actually selected
+            if (rawDate) {
+                const [year, month, day] = rawDate.split('-');
+                formattedServiceDate = `${day}-${month}-${year}`;
+            }
+
             const data = {
                 name: formData.get('name'),
                 mobile: formData.get('mobile'),
                 location: formData.get('location'),
-                servicedate: formData.get('serviceDate'),
+                servicedate: formattedServiceDate,
                 message: formData.get('message'),
-                enquirydate: new Date().toISOString()
+                enquirydate: new Date().toLocaleString("en-IN", {
+                    timeZone: "Asia/Kolkata",
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                    hour12: true
+                })
             };
             console.log('Form data to send:', data);
             try {
