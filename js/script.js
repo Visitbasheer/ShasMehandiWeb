@@ -163,4 +163,42 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    const contactForm = document.getElementById('contactForm');
+    if (contactForm) {
+        contactForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            // Replace with your actual Azure Function URL
+            const AZURE_FUNCTION_URL = 'https://fa-zebpay-price-notifier-flex.azurewebsites.net/api/shasmehandi_send_telegram_message';
+
+            const formData = new FormData(contactForm);
+            const data = {
+                name: formData.get('name'),
+                mobile: formData.get('mobile'),
+                location: formData.get('location'),
+                servicedate: formData.get('serviceDate'),
+                message: formData.get('message'),
+                enquirydate: new Date().toISOString()
+            };
+            console.log('Form data to send:', data);
+            try {
+                const response = await fetch(AZURE_FUNCTION_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    alert('Thank you for contacting Shas Mehandi!\nWe will get back to you shortly.');
+                    contactForm.reset();
+                } else {
+                    throw new Error('Azure Function failed');
+                }
+            } catch (error) {
+                console.warn('Telegram failed via Azure, falling back to Formspree:', error);
+                contactForm.submit(); // Submits to the URL in the <form action="...">
+            }
+        });
+    }
 });
